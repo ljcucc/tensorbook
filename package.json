@@ -1,0 +1,28 @@
+{
+  "name": "tensorbook",
+  "version": "1.0.0",
+  "description": "NoteMD is a simple but modern web note taking app by using markdown, built with Lit and web components.",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs",
+    "lib": "lib"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ljcucc/NoteMD.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/ljcucc/NoteMD/issues"
+  },
+  "homepage": "https://github.com/ljcucc/NoteMD#readme",
+  "dependencies": {
+    "@tensorflow/tfjs": "^3.20.0"
+  },
+  "type": "module"
+}

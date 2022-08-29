@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="shortcut icon" href="/assets/icon@96.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <!-- <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests"> -->
+  <title>TensorBook - TF.js notebook</title>
+
+  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+  <style>
+    body{
+      margin: 0;
+      padding: 0;
+    }
+
+    body, html{
+      height: 100%;
+    }
+  </style>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Mono&display=swap" rel="stylesheet">
+
+<!-- Import TensorFlow.js -->
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@2.0.0/dist/tf.min.js"></script>
+<!-- Import tfjs-vis -->
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-wasm/dist/tf-backend-wasm.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-vis@1.0.2/dist/tfjs-vis.umd.min.js"></script>
+
+<style>
+  /* button{
+    padding: 16px;
+    font-size: 16px;
+    border-radius: 10px;
+    text-transform: capitalize;
+  }
+
+  * {
+    font-family:Helvetica, Arial , sans-serif;
+    font-size: 16px;
+  }
+
+  body{
+    padding: 16px;
+  } */
+
+  body{
+    width: 100%;
+    height: 100vh;
+  }
+</style>
+
+</head>
+<body>
+
+  <main-app>
+    <select id="device">
+      <option value="cpu">cpu</option>
+      <option value="wasm">wasm</option>
+      <option value="webgl">webgl</option>
+    </select>
+  
+    <p>
+      Step 1. <button id="create">create model</button>
+    </p>
+    <p>
+      Step 2. <button id="train">train model</button>
+    </p>
+    <p>
+      Step 3. <button id="test">test model</button>
+    </p>
+    <p>
+      Step 4. <button id="download">download model</button>
+    </p>
+  </main-app>
+
+</body>
+<script src="https://unpkg.com/showdown/dist/showdown.min.js"></script>
+<script src="/index.js" type="module"></script>
+</html>
