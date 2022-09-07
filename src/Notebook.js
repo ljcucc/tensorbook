@@ -30,11 +30,18 @@ export class NotebookKernel{
     }
   }
 
-  start(){
+  startCatchingLog(){
     this.consolelogCallback = console.log;
     console.log = this.ConsoleLogCatcher.bind(this);
     window.logCatcher = this.ConsoleLogCatcher.bind(this);
     window.log = this.consolelogCallback;
+  }
+
+  endCatchingLog(){
+    console.log = this.consolelogCallback;
+  }
+
+  start(){
     console.log(this.consolelogCallback);
 
     this.#kernelLoop()
@@ -47,6 +54,7 @@ export class NotebookKernel{
       //   log: this.ConsoleLogCatcher
       // }
       // this.#logs = [];
+      this.startCatchingLog();
       let _code = this.#runQueue.shift();
       let _result;
       try {
@@ -64,7 +72,8 @@ export class NotebookKernel{
       }
       if(this.#resultCallback) this.#resultCallback(_result);
 
-      this.consolelogCallback("a loop done!");
+      this.endCatchingLog();
+      console.log("a loop done!");
     }
   }
 
@@ -85,12 +94,50 @@ export class NotebookKernel{
   }
 }
 
+class NotebookBlock{
+  #logs = [];
+  #code = "";
+  #kernel;
+
+  constructor(code, kernel){
+    this.#code = code;
+    this.#logs = [];
+    this.#kernel = kernel;
+  }
+
+  async run(updateCallabck){
+    await this.#kernel.run(this.#code, ((values)=>{
+      this.pushLogs(...values);
+      updateCallabck();
+    }).bind(this));
+  }
+
+  setCode(code){
+    this.#code = code;
+  }
+
+  getCode(){
+    return this.#code;
+  }
+
+  getLogs(){
+    return this.#logs || [];
+  }
+
+  pushLogs(...msg){
+    this.#logs.push(...msg);
+  }
+
+  clearLogs(){
+    this.#logs = [];
+  }
+}
+
 class NotebookBlockWidget extends LitElement{
   static properties = {
     kernel: {type: NotebookKernel},
-    code: { type: String },
     _menuOpen: { type: Boolean },
-    _logs: { type: Array },
+    nb: { type: NotebookBlock },
   };
 
   static styles = css`
@@ -127,14 +174,14 @@ class NotebookBlockWidget extends LitElement{
     super();
 
     this._menuOpen = false;
-    this._logs = [];
+    // this._nb = new NotebookBlock();
   }
 
   async _run(){
-    this.code = this.renderRoot.querySelector("wc-codemirror").value;
-    this._logs = [];
-    await this.kernel.run(this.code, ((values)=>{
-      this._logs.push(...values);
+    let code = this.renderRoot.querySelector("wc-codemirror").value;
+    this.nb.setCode(code);
+    this.nb.clearLogs();
+    await this.nb.run((()=>{
       this.requestUpdate();
     }).bind(this));
   }
@@ -153,25 +200,37 @@ class NotebookBlockWidget extends LitElement{
     const { id } = e.detail;
 
     if(id == "clear_console"){
-      this._logs = [];
+      this.nb.clearLogs();
+      return;
+    }
+
+    switch(id){
+      case "new_cell_bottom":
+      case "new_cell_top":
+      case "delete_cell":
+        this.dispatchEvent(new Event(id));
+        break;
+      default:
+        return;
     }
   }
 
   render(){
-    const logs = this._logs.map(e=>html`<div>${e}</div>`);
+    const logs = this.nb.getLogs().map(e=>html`<div>${e}</div>`);
     return html`
     <div class="code-block">
       <div class="edit-block">
         <!-- <button id="run" @click="${this._run}">run</button> -->
         <icon-button id="run" name="play_circle" @click="${this._run}"></icon-button>
-        <wc-codemirror style="font-size: 16px;width: 100%;padding: 8px;max-width: calc(100% - 120px);" mode="javascript" .value=${this.code}></wc-codemirror>
+        <wc-codemirror style="font-size: 16px;width: 100%;padding: 8px;max-width: calc(100% - 120px);" mode="javascript" .value=${this.nb.getCode()}></wc-codemirror>
         <icon-button name="more_horiz" @click="${this._openMenu}"></icon-button>
         <drop-menu>
           <dropmenu-array @select="${this._onMenuSelected}" .list=${[
           { title: "New cell at top", id: "new_cell_top" },
-          { title: "New cell at bottom", id: "new_cell_bottom" },
+          { title: "New cell at bottom", id: "new_cell_bottom", type: "split" },
           { title: "Move cell up", id: "move_cell_up" },
-          { title: "Move cell down", id: "move_cell_down", type: "split" },
+          { title: "Move cell down", id: "move_cell_down"},
+          { title: "Delete cell", id: "delete_cell", type: "split" },
           { title: "Clear logs", id: "clear_console" },
           { title: "Copy logs", id: "clear_console" },
         ]}></dropmenu-array>
@@ -181,6 +240,15 @@ class NotebookBlockWidget extends LitElement{
         ${logs}
       </div>
     </div>
+    `;
+  }
+}
+
+class AddBlockWidget extends LitElement{
+  render(){
+    return html`
+      <div>
+      </div>
     `;
   }
 }
@@ -206,20 +274,49 @@ class NotebookWidget extends LitElement {
     this._kernel.start();
 
     this._blocks = [
-      { code: "a=10" },
-      { code: "console.log(a)" },
-      { code: "console.log(a)" },
-      { code: "console.log(a)" },
-      { code: "console.log(a)" },
-      { code: "console.log(a)" },
-      { code: "console.log(a)" },
+      new NotebookBlock("a=10", this._kernel),
+      new NotebookBlock("console.log(a)", this._kernel),
+      new NotebookBlock("console.log(a)", this._kernel),
+      new NotebookBlock("console.log(a)", this._kernel),
+      new NotebookBlock("console.log(a)", this._kernel),
+      new NotebookBlock("console.log(a)", this._kernel),
     ];
+  }
+  
+  _newCellBottom(i){
+    return ()=>{
+      console.log("new cell bottom", i);
+      this._blocks.splice(i+1, 0, new NotebookBlock("// your code here", this._kernel));
+      this.requestUpdate();
+    };
+  }
+
+  _newCellTop(i){
+    return ()=>{
+      console.log("new cell top", i);
+      this._blocks.splice(i, 0, new NotebookBlock("// your code here", this._kernel));
+      this.requestUpdate();
+    };
+  }
+
+  _deleteCell(i){
+    return ()=>{
+      console.log("delete cell", i);
+      this._blocks.splice(i, 1);
+      this.requestUpdate();
+    };
   }
 
   render() {
-    let blocksWidget = this._blocks.map(e => {
+    let blocksWidget = this._blocks.map((e, i) => {
       return html`
-        <notebook-block-widget .code=${e?.code || ""} .kernel=${this._kernel}></notebook-block-widget>
+        <notebook-block-widget 
+          .nb=${e}
+          .kernel=${this._kernel}
+          @new_cell_top="${this._newCellTop(i)}"
+          @new_cell_bottom="${this._newCellBottom(i)}"
+          @delete_cell="${this._deleteCell(i)}"
+          ></notebook-block-widget>
       `
     });
     return html`
@@ -232,3 +329,4 @@ class NotebookWidget extends LitElement {
 
 customElements.define("notebook-widget", NotebookWidget);
 customElements.define("notebook-block-widget", NotebookBlockWidget);
+customElements.define("add-block", AddBlockWidget);
